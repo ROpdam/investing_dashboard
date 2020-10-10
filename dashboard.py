@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
@@ -6,7 +7,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import dash_table
 
-from components import to_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
+from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
 
 # TODO
 # Store monthly values
@@ -14,11 +15,11 @@ from components import to_eur, shrink_pf, budget_pie, profit_perc_bar, change_ov
 # Fix overlap 
 
 ########################################### Data ###########################################
-path = '/Users/Robin/Documents/personal_finance/Investing/'
+path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/'
 
 portfolio = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Stocks')
 portfolio['date'] = portfolio['date'].dt.date
-portfolio = portfolio.apply(to_eur, axis=1).sort_values('total_cost_eur', ascending=False)
+portfolio = portfolio.apply(total_cost_eur, axis=1).sort_values('total_cost_eur', ascending=False)
 
 pf_no_dupl = shrink_pf(portfolio)
 # print(pf_no_dupl)
@@ -29,6 +30,10 @@ profit_pf = portfolio.copy()
 
 budget = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Budget')
 
+max_days = 120
+if os.path.exists(path + 'history/PF_history.xlsx'):
+    history = pd.read_excel(path + 'history/PF_history.xlsx')
+    max_days = len(history)
 
 ########################################### Styles ###########################################
 colors = {
@@ -54,7 +59,8 @@ profit_perc_bar_layout = {
         'plot_bgcolor':'rgba(0, 0, 0, 0)',
         'paper_bgcolor':'rgba(0, 0, 0, 0)',
         'title':{'font':{'size':20, 'color':'white'}},
-        'legend':{'font':{'size':14, 'color':'white'}},
+        # 'legend':{'font':{'size':14, 'color':'white'}},
+        'showlegend':False,
         'margin':{'pad':10},
         'xaxis':{'color':'white'},
         'yaxis':{'color':'white'}
@@ -117,6 +123,13 @@ app.layout = html.Div(
                     value='Portfolio'),
                     style={'padding':'20px', 'margin-left':'50px'}
             ),
+
+    html.Div("Number of days back", style={'fontSize': 16, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'5px'}),
+    html.Div(dbc.Input(id='days_back',
+                       type="number", min=7, max=max_days, step=5,
+                       value=max_days), 
+                       style={'width':'80px', 'marginTop':'30px', 'position':'absolute', 'left':575}),
+
     html.P(
             [
                 'In DeGiro', html.Br(), '\u20AC ', '{:.2f}'.format(round(float(budget.Budget.iloc[0]), 2))
@@ -161,11 +174,12 @@ app.layout = html.Div(
 @app.callback(
     Output('change-line', 'figure'),
     [
-        Input('radio_pf-or-stocks', 'value')
+        Input('radio_pf-or-stocks', 'value'),
+        Input('days_back', 'value')
     ]
 )
-def update_change_line(radio_pf):
-    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, input=radio_pf)
+def update_change_line(radio_pf, days_back):
+    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, days_back=days_back)
 
 @app.callback(
     Output("collapse", "is_open"),
@@ -191,8 +205,6 @@ def update_date_dropdown(name):
 )
 def update_profit_bar(ticker, date):
     global profit_pf
-    # print(profit_pf)
-    # print(ticker, date)
     tick_pf = profit_pf[profit_pf['ticker'] == ticker].copy()
     if (portfolio.date.astype(str)==date).any():
         print(tick_pf)
