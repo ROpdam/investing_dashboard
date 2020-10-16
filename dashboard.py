@@ -6,6 +6,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import dash_table
+import datetime
 
 from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
 
@@ -125,10 +126,16 @@ app.layout = html.Div(
             ),
 
     html.Div("Number of days back", style={'fontSize': 16, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'5px'}),
-    html.Div(dbc.Input(id='days_back',
-                       type="number", min=7, max=max_days, step=5,
-                       value=max_days), 
-                       style={'width':'80px', 'marginTop':'30px', 'position':'absolute', 'left':575}),
+    # html.Div(dbc.Input(id='days_back',
+    #                    type="number", min=7, max=max_days, step=5,
+    #                    value=max_days), 
+    #                    style={'width':'80px', 'marginTop':'30px', 'position':'absolute', 'left':575}),
+    html.Div([dcc.DatePickerRange(id='date_range',
+                                  min_date_allowed=datetime.date(2018, 1, 1),
+                                  max_date_allowed=datetime.datetime.now().date(),
+                                  start_date=datetime.datetime.now() - datetime.timedelta(days=120),
+                                  end_date=datetime.datetime.now()), 
+                                ], style={'padding':'20px'}),
 
     html.P(
             [
@@ -175,11 +182,12 @@ app.layout = html.Div(
     Output('change-line', 'figure'),
     [
         Input('radio_pf-or-stocks', 'value'),
-        Input('days_back', 'value')
+        Input('date_range', 'start_date'),
+        Input('date_range', 'end_date')
     ]
 )
-def update_change_line(radio_pf, days_back):
-    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, days_back=days_back)
+def update_change_line(radio_pf, start_date, end_date):
+    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, start_date=start_date, end_date=end_date)
 
 @app.callback(
     Output("collapse", "is_open"),
