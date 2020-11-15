@@ -55,6 +55,7 @@ def get_hist_prices(pf, days_back=0):
 
     to_date = (datetime.datetime.now() - datetime.timedelta(days=1)).date().strftime('%d/%m/%Y')
 
+    
     all_prices = pd.DataFrame()
     for i, row in pf.iterrows():
         search_results = investpy.search_quotes(text=row['ticker'], products=[row['product']], countries=[row['country']])
@@ -63,6 +64,13 @@ def get_hist_prices(pf, days_back=0):
             all_prices = hist_p.join(all_prices)
 
     return all_prices
+
+
+def exclude_weekends():
+    today = datetime.datetime.now()
+    if today.weekday() == 6:
+        return today - datetime.timedelta(days=2)
+    return today - datetime.timedelta(days=1)
 
 
 def update_history(pf, days_back=0, store=True):
@@ -76,12 +84,11 @@ def update_history(pf, days_back=0, store=True):
         scraped_df = to_eur(scraped_df, pf)
         # print(scraped_df)
         scraped_df.to_excel(file_name, index=False)   
-    
+
     # Read history, add days not covered till today
-    yesterday = datetime.datetime.now() - datetime.timedelta(days=1)
+    yesterday = exclude_weekends() # Or Friday if today == Sunday
     historic_p = pd.read_excel(file_name)
     delta = yesterday - historic_p.iloc[-1].Date
-    # print(historic_p)
     if delta.days == 0:
         _prices = historic_p
     else:
@@ -107,6 +114,8 @@ def budget_pie(pf, b, layout):
 
 def profit_perc_bar(pf, layout):
     update_history(pf)
+    print(_prices.set_index('Date').iloc[-1][::-1])
+    print(pf.cost_per_stock_eur)
     pf['profit_perc'] = _prices.set_index('Date').iloc[-1][::-1].to_numpy()/pf.cost_per_stock_eur.to_numpy() - 1
     fig = px.bar(data_frame=pf, x='ticker', y='profit_perc', labels={'ticker':'', 'profit_perc':''}, color='ticker', color_discrete_map=dict(zip(pf['ticker'], pf['color'])), title=f'Profit Percentage', opacity=0.9)
 
@@ -120,7 +129,7 @@ def change_over_time_line(pf, pf_no_dupl, layout, stocks_or_pf, start_date, end_
     global _prices
     print(datetime.datetime.strptime(start_date.split('T')[0], '%Y-%m-%d').date(), datetime.datetime.strptime(end_date.split('T')[0], '%Y-%m-%d').date())
     
-    his_subset = update_history(pf, days_back)
+    his_subset = update_history(pf, start_date, end_date)
     # print(perc_change)
     perc_change = his_subset.set_index('Date').pct_change().reset_index()
     # print(days_back, len(_prices))
