@@ -99,6 +99,14 @@ def update_history(pf, days_back=0, store=True):
         _prices.to_excel(file_name, index=False)
 
 
+def get_start_date(time_period):
+    # Always adding 2 days for if today is a weekend
+    if time_period[1] == 'y':
+        print((datetime.datetime.now() - pd.DateOffset(months=1).date()) # get date from here
+        return datetime.datetime.now() - pd.DateOffset(years=1) # years possible?
+    else:
+        return datetime.datetime.now() - pd.DateOffset(months=1)
+
 ######################################## FIGURES ############################################
 def budget_pie(pf, b, layout):
     # Init
@@ -114,8 +122,6 @@ def budget_pie(pf, b, layout):
 
 def profit_perc_bar(pf, layout):
     update_history(pf)
-    print(_prices.set_index('Date').iloc[-1][::-1])
-    print(pf.cost_per_stock_eur)
     pf['profit_perc'] = _prices.set_index('Date').iloc[-1][::-1].to_numpy()/pf.cost_per_stock_eur.to_numpy() - 1
     fig = px.bar(data_frame=pf, x='ticker', y='profit_perc', labels={'ticker':'', 'profit_perc':''}, color='ticker', color_discrete_map=dict(zip(pf['ticker'], pf['color'])), title=f'Profit Percentage', opacity=0.9)
 
@@ -125,8 +131,10 @@ def profit_perc_bar(pf, layout):
     return dcc.Graph(id="profit-bar", figure=fig)
 
 
-def change_over_time_line(pf, pf_no_dupl, layout, stocks_or_pf, start_date, end_date):
+def change_over_time_line(pf, pf_no_dupl, layout, stocks_or_pf, time_period):
     global _prices
+    start_date = get_start_date(time_period)
+    print('start_date: ', start_date)
     print(datetime.datetime.strptime(start_date.split('T')[0], '%Y-%m-%d').date(), datetime.datetime.strptime(end_date.split('T')[0], '%Y-%m-%d').date())
     
     his_subset = update_history(pf, start_date, end_date)

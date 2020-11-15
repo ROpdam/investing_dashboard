@@ -11,9 +11,7 @@ import datetime
 from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
 
 # TODO
-# Store monthly values
-# Pecentage change over time instead of value
-# Fix overlap 
+# Fix buttons for week back, month back, etc.
 
 ########################################### Data ###########################################
 path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/'
@@ -23,7 +21,6 @@ portfolio['date'] = portfolio['date'].dt.date
 portfolio = portfolio.apply(total_cost_eur, axis=1).sort_values('total_cost_eur', ascending=False)
 
 pf_no_dupl = shrink_pf(portfolio)
-# print(pf_no_dupl)
 
 ticker_dates = portfolio.set_index('ticker').groupby(level=0).apply(lambda x : list(x['date'])).to_dict()
 
@@ -38,12 +35,28 @@ if os.path.exists(path + 'history/PF_history.xlsx'):
 
 ########################################### Styles ###########################################
 colors = {
-    'background':'black',
-    'text':'white',
-    'background-plot':'black',
-    'text-plot':'white'
+        'background':'black',
+        'text':'white',
+        'background-plot':'black',
+        'text-plot':'white'
     }
 
+active_button_style = {
+        'background-color': 'red',
+        'color': 'white',
+        'height': '50px',
+        'width': '50px',
+        # 'margin-left': '1px'
+}
+
+inactive_button_style = {
+        'background-color': 'grey',
+        'color': 'white',
+        'height': '50px',
+        'width': '50px',
+        # 'margin-left': '1px'
+}
+        
 # Budget pie chart
 budget_pie_layout = {
         'plot_bgcolor':'rgba(0, 0, 0, 0)',
@@ -73,7 +86,7 @@ change_over_time_line_layout = {
         'paper_bgcolor':'rgba(0, 0, 0, 0)',
         'title':{'font':{'size':20, 'color':'white'}},
         'legend':{'font':{'size':14, 'color':'white'}},
-        'margin':{'pad':10},
+        # 'margin':{'pad':10},
         'xaxis':{'color':'white', 'showgrid':False},
         'yaxis':{'color':'white'}
          }
@@ -125,17 +138,17 @@ app.layout = html.Div(
                     style={'padding':'20px', 'margin-left':'50px'}
             ),
 
-    html.Div("Number of days back", style={'fontSize': 16, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'5px'}),
+    # html.Div("Number of days back", style={'fontSize': 16, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'5px'}),
     # html.Div(dbc.Input(id='days_back',
     #                    type="number", min=7, max=max_days, step=5,
     #                    value=max_days), 
     #                    style={'width':'80px', 'marginTop':'30px', 'position':'absolute', 'left':575}),
-    html.Div([dcc.DatePickerRange(id='date_range',
-                                  min_date_allowed=datetime.date(2018, 1, 1),
-                                  max_date_allowed=datetime.datetime.now().date(),
-                                  start_date=datetime.datetime.now() - datetime.timedelta(days=120),
-                                  end_date=datetime.datetime.now()), 
-                                ], style={'padding':'20px'}),
+    # html.Div([dcc.DatePickerRange(id='date_range',
+    #                               min_date_allowed=datetime.date(2018, 1, 1),
+    #                               max_date_allowed=datetime.datetime.now().date(),
+    #                               start_date=datetime.datetime.now() - datetime.timedelta(days=120),
+    #                               end_date=datetime.datetime.now()), 
+    #                             ], style={'padding':'20px'}),
 
     html.P(
             [
@@ -161,33 +174,41 @@ app.layout = html.Div(
         # Third Row
     html.Div(
             [html.Div(
-                    [
+                [
+                    dbc.RadioItems(
+                        id='radio-time-period',
+                        options=[{'label': i, 'value': i} for i in ['1m', '3m', '6m', '1y', '2y']],
+                        value='6m',
+                        inline=True,
+                        style={'margin':'5px'}
+                    ),
                     dcc.Graph(id="change-line")
-                    ], style={'margin-left':'100px'})
+                ], style={'margin-left':'100px'})
 
             ], 
     style={'background-color':'black', 'color':'white'})
     ], 
     style={
         'background-color':'black',
-        'position':'fixed',
+        # 'position':'fixed',
         'width':'100%',
         'height':'100%',
         'top':'0px',
         'left':'0px',
+        'margin': '0px',
         'z-index':'1000'
         })
 
+####################################### CALL BACKS ############################################
 @app.callback(
     Output('change-line', 'figure'),
     [
         Input('radio_pf-or-stocks', 'value'),
-        Input('date_range', 'start_date'),
-        Input('date_range', 'end_date')
+        Input('radio-time-period', 'value'),
     ]
 )
-def update_change_line(radio_pf, start_date, end_date):
-    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, start_date=start_date, end_date=end_date)
+def update_change_line(radio_pf, time_period):
+    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, time_period=time_period)
 
 @app.callback(
     Output("collapse", "is_open"),
