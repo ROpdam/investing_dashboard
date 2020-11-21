@@ -8,6 +8,8 @@ Plotly Dashboard to keep track of personal investments
 ├── dashboard.py
 ├── components.py
 │
+├── archive
+│      └── yahoo_scraping.py
 └── README.md
 ```
 
