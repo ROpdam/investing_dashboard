@@ -6,11 +6,7 @@ Plotly Dashboard to keep track of personal investments
 ## 2. Repository Map
 ```
 ├── dashboard.py
-|
 ├── components.py
-├── yahoo_scraping.py
-|
-├── investing.ipynb
 │
 └── README.md
 ```
