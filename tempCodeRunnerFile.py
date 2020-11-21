@@ -1,5 +1,0 @@
-dbc.Button(id='1m', children=['1m'], n_clicks=0, style=inactive_button_style),
-                    #  dbc.Button(id='3m', children=['3m'], n_clicks=0, style=inactive_button_style),
-                    #  dbc.Button(id='6m', children=['6m'], n_clicks=0, style=inactive_button_style),
-                    #  dbc.Button(id='1y', children=['1y'], n_clicks=0, style=active_button_style),
-                    #  dbc.Button(id='2y', 
