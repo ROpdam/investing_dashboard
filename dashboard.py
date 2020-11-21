@@ -11,7 +11,7 @@ import datetime
 from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
 
 # TODO
-# Fix buttons for week back, month back, etc.
+# Make deployable on Heroku: roportfolio.heroku.app
 
 ########################################### Data ###########################################
 path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/'
@@ -21,14 +21,11 @@ portfolio['date'] = portfolio['date'].dt.date
 portfolio = portfolio.apply(total_cost_eur, axis=1).sort_values('total_cost_eur', ascending=False)
 
 pf_no_dupl = shrink_pf(portfolio)
-
 ticker_dates = portfolio.set_index('ticker').groupby(level=0).apply(lambda x : list(x['date'])).to_dict()
-
 profit_pf = portfolio.copy()
-
 budget = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Budget')
-
 max_days = 120
+
 if os.path.exists(path + 'history/PF_history.xlsx'):
     history = pd.read_excel(path + 'history/PF_history.xlsx')
     max_days = len(history)
@@ -99,7 +96,6 @@ app.config.suppress_callback_exceptions = True
 
 app.layout = html.Div(
     [
-
         # Top Row
     html.Div(
         [
@@ -134,21 +130,16 @@ app.layout = html.Div(
     html.Div(dbc.RadioItems(
                     id='radio_pf-or-stocks',
                     options=[{'label': i, 'value': i} for i in ['Portfolio', 'Individual Stocks']],
-                    value='Portfolio'),
+                    value='Individual Stocks'),
                     style={'padding':'20px', 'margin-left':'50px'}
             ),
-
-    # html.Div("Number of days back", style={'fontSize': 16, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'5px'}),
-    # html.Div(dbc.Input(id='days_back',
-    #                    type="number", min=7, max=max_days, step=5,
-    #                    value=max_days), 
-    #                    style={'width':'80px', 'marginTop':'30px', 'position':'absolute', 'left':575}),
-    # html.Div([dcc.DatePickerRange(id='date_range',
-    #                               min_date_allowed=datetime.date(2018, 1, 1),
-    #                               max_date_allowed=datetime.datetime.now().date(),
-    #                               start_date=datetime.datetime.now() - datetime.timedelta(days=120),
-    #                               end_date=datetime.datetime.now()), 
-    #                             ], style={'padding':'20px'}),
+    html.Div(dbc.RadioItems(
+                    id='radio-time-period',
+                    options=[{'label': i, 'value': i} for i in ['1m', '3m', '6m', '1y', '2y']],
+                    value='3m',
+                    inline=True,
+                ), style={'display':'inline-block', 'margin-left':'5%', 'margin-top':'1%'}
+            ),
 
     html.P(
             [
@@ -163,40 +154,30 @@ app.layout = html.Div(
         ], 
         className="row", style={'background-color':'black', 'color':'white'}),
 
-        # Second Row
+    # Second Row
+    html.Div(
+            [
+               dcc.Graph(id="change-line")
+            ],
+    style={'background-color':'black', 'color':'white', 'margin-left':'3%', 'margin-right':'2%'}),
+    # Third Row
     html.Div(
         [
-        html.Div(budget_pie(pf_no_dupl, budget, budget_pie_layout), style={'margin-left':'100px'}),
-        html.Div(profit_perc_bar(pf_no_dupl, profit_perc_bar_layout), style={'margin-left':'200px'})
+        html.Div(budget_pie(pf_no_dupl, budget, budget_pie_layout), style={'margin-left':'auto', 'margin-right':'10%'}),
+        # html.Div(profit_perc_bar(pf_no_dupl, profit_perc_bar_layout), style={'margin-left':'200px'})
         ], 
         className="row", style={'background-color':'black', 'color':'white'}),
 
-        # Third Row
-    html.Div(
-            [html.Div(
-                [
-                    dbc.RadioItems(
-                        id='radio-time-period',
-                        options=[{'label': i, 'value': i} for i in ['1m', '3m', '6m', '1y', '2y']],
-                        value='6m',
-                        inline=True,
-                        style={'margin':'5px'}
-                    ),
-                    dcc.Graph(id="change-line")
-                ], style={'margin-left':'100px'})
-
-            ], 
-    style={'background-color':'black', 'color':'white'})
+    html.Footer('Last edited November 2020', style={'color':'grey', 'margin-left':'1%'})
     ], 
     style={
         'background-color':'black',
-        # 'position':'fixed',
-        'width':'100%',
-        'height':'100%',
-        'top':'0px',
-        'left':'0px',
-        'margin': '0px',
-        'z-index':'1000'
+        # 'width':'100%',
+        # 'height':'100%'
+        # 'top':'0px',
+        # 'left':'0px',
+        # 'margin': '0px',
+        # 'z-index':'1000'
         })
 
 ####################################### CALL BACKS ############################################
@@ -208,7 +189,7 @@ app.layout = html.Div(
     ]
 )
 def update_change_line(radio_pf, time_period):
-    return change_over_time_line(portfolio, pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, time_period=time_period)
+    return change_over_time_line(pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, time_period=time_period)
 
 @app.callback(
     Output("collapse", "is_open"),

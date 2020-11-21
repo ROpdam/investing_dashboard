@@ -2,7 +2,6 @@ import pandas as pd
 import datetime
 import os
 from forex_python.converter import CurrencyRates
-from yahoo_scraping import YahooFinanceHistory
 import plotly.express as px
 import dash_html_components as html
 import dash_core_components as dcc
@@ -44,17 +43,19 @@ def shrink_pf(pf):
 
 
 def get_hist_prices(pf, days_back=0):
-    print('Retrieving prices')
+    print('Retrieving prices...')
 
     if days_back == 0:
         from_date = pf['date'].min().strftime('%d/%m/%Y')
     elif days_back > len(_prices):
-        from_date = (datetime.datetime.now() - datetime.timedelta(days=days_back)).strftime('%d/%m/%Y')
+        print("More back than existing prices")
+        from_date = (exclude_weekends() - datetime.timedelta(days=days_back)).strftime('%d/%m/%Y')
     else: 
-        from_date = _prices.iloc[-1].Date.strftime('%d/%m/%Y')
+        print("prices already exist")
+        return _prices.iloc[-days_back:]
+        # from_date = _prices.iloc[-1].Date.strftime('%d/%m/%Y')
 
-    to_date = (datetime.datetime.now() - datetime.timedelta(days=1)).date().strftime('%d/%m/%Y')
-
+    to_date = (exclude_weekends() - datetime.timedelta(days=1)).date().strftime('%d/%m/%Y')
     
     all_prices = pd.DataFrame()
     for i, row in pf.iterrows():
@@ -92,27 +93,31 @@ def update_history(pf, days_back=0, store=True):
     if delta.days == 0:
         _prices = historic_p
     else:
-        print('Adding new days to existing history')
-        new_p = get_hist_prices(pf, days_back=delta.days).copy()
+        print('Adding new days to existing history...')
+        new_p = get_hist_prices(pf, days_back=delta.days)
         new_p = to_eur(new_p, pf)
-        _prices = pd.concat([historic_p, new_p]).reset_index()
+        _prices = pd.concat([historic_p, new_p]).set_index('Date').interpolate(axis=0).reset_index()
         _prices.to_excel(file_name, index=False)
 
 
 def get_start_date(time_period):
     # Always adding 2 days for if today is a weekend
-    if time_period[1] == 'y':
-        print((datetime.datetime.now() - pd.DateOffset(months=1).date()) # get date from here
-        return datetime.datetime.now() - pd.DateOffset(years=1) # years possible?
+    if time_period == '1y':
+        return datetime.datetime.now() - pd.DateOffset(months=12)
+    elif time_period == '2y':
+        return datetime.datetime.now() - pd.DateOffset(months=24)
     else:
-        return datetime.datetime.now() - pd.DateOffset(months=1)
+        return datetime.datetime.now() - pd.DateOffset(months=int(time_period[0]))
+
+
 
 ######################################## FIGURES ############################################
 def budget_pie(pf, b, layout):
+    update_history(pf)
     # Init
     pf = pf.append({'color':'white', 'ticker':'Transaction', 'total_cost_eur':pf['transaction_costs'].sum()}, ignore_index=True)
     # Create fig
-    fig = px.pie(data_frame=pf, values='total_cost_eur', names='ticker', color='ticker', color_discrete_map=dict(zip(pf['ticker'], pf['color'])), title='Portfolio Split', opacity=0.9, hole=0.3)
+    fig = px.pie(data_frame=pf, values='total_cost_eur', names='ticker', color='ticker', color_discrete_map=dict(zip(pf['ticker'], pf['color'])), title='Cost Split', opacity=0.9, hole=0.3)
     # Update layout
     fig.update_layout(layout)
     fig.update_traces(textfont={'color':'white', 'size':14})
@@ -121,7 +126,6 @@ def budget_pie(pf, b, layout):
 
 
 def profit_perc_bar(pf, layout):
-    update_history(pf)
     pf['profit_perc'] = _prices.set_index('Date').iloc[-1][::-1].to_numpy()/pf.cost_per_stock_eur.to_numpy() - 1
     fig = px.bar(data_frame=pf, x='ticker', y='profit_perc', labels={'ticker':'', 'profit_perc':''}, color='ticker', color_discrete_map=dict(zip(pf['ticker'], pf['color'])), title=f'Profit Percentage', opacity=0.9)
 
@@ -131,36 +135,33 @@ def profit_perc_bar(pf, layout):
     return dcc.Graph(id="profit-bar", figure=fig)
 
 
-def change_over_time_line(pf, pf_no_dupl, layout, stocks_or_pf, time_period):
+def change_over_time_line(pf, layout, stocks_or_pf, time_period):
     global _prices
+
     start_date = get_start_date(time_period)
-    print('start_date: ', start_date)
-    print(datetime.datetime.strptime(start_date.split('T')[0], '%Y-%m-%d').date(), datetime.datetime.strptime(end_date.split('T')[0], '%Y-%m-%d').date())
-    
-    his_subset = update_history(pf, start_date, end_date)
-    # print(perc_change)
-    perc_change = his_subset.set_index('Date').pct_change().reset_index()
-    # print(days_back, len(_prices))
+    days_back = (datetime.datetime.now() - start_date).days
+    update_history(pf, days_back=days_back)
+    his_subset = _prices.iloc[-days_back:].set_index('Date')
+    perc_change = his_subset.apply(lambda x: x.div(x.iloc[0]).subtract(1).mul(100)).round(2).reset_index()
+
     if stocks_or_pf == 'Individual Stocks':
         y = list(pf['ticker'])
         colors = list(pf['color'])
         title = 'Portfolio Over Time (Individual Stocks)'
-        labels = {'y':'Percentage Daily Change'}
+        fig = px.line(data_frame=perc_change, x='Date', y=y, color_discrete_sequence=colors, title=title)
+        fig.update_layout(yaxis_title = "% Daily Change")
 
     elif stocks_or_pf == 'Portfolio':
         y = 'Total Portfolio'
-        his_subset[y] = (pf['number_of_stocks'].to_numpy() * his_subset).sum(axis=1)
+        his_subset[y] = (pf['number_of_stocks'].to_numpy()[::-1] * his_subset).sum(axis=1)
+        his_subset = his_subset.reset_index()
         his_subset['Profit'] = his_subset[y] - pf.total_cost_eur.sum()
         title = 'Portfolio Over Time'
-        labels = {y:'Value in Euros'}
-
-        if his_subset[y].iloc[-1] > pf.total_cost_eur.sum():
-            colors = ['green']
-        else:
-            colors = ['red']
-
-    # print(his_subset)
-    fig = px.line(data_frame=perc_change, x='Date', y=[y], labels=labels, color_discrete_sequence=colors, title=title, hover_data=['Profit'])
+        colors = ['red']
+        if his_subset[y].iloc[-1] > pf.total_cost_eur.sum(): colors = ['green']
+        fig = px.line(data_frame=his_subset, x='Date', y=[y], color_discrete_sequence=colors, title=title, hover_data=['Profit'])
+        fig.update_layout(yaxis_title = "Value in Euros")
+    
     fig.update_layout(layout)
     fig.update_traces(textfont={'color':'white', 'size':14})
 
