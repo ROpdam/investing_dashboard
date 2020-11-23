@@ -222,4 +222,4 @@ def update_profit_bar(ticker, date):
     return profit_perc_bar(portfolio, profit_perc_bar_layout)
 
 if __name__ =='__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
