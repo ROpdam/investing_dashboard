@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  portfolio:
+    build:
+      context: .
+    image: portfolio:$VERSION
+    container_name: portfolio
+    ports:
+      - "80:5050"
+    environment:
+      - TARGET=$TARGET
+    volumes:
+      - './data:/data'
+    restart: unless-stopped

@@ -14,7 +14,8 @@ from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, c
 # Make deployable on Heroku: roportfolio.heroku.app
 
 ########################################### Data ###########################################
-path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/'
+# path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/data/'
+path = './data/'
 
 portfolio = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Stocks')
 portfolio['date'] = portfolio['date'].dt.date
@@ -221,4 +222,4 @@ def update_profit_bar(ticker, date):
     return profit_perc_bar(portfolio, profit_perc_bar_layout)
 
 if __name__ =='__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
