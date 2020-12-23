@@ -160,7 +160,7 @@ def change_over_time_line(pf, layout, stocks_or_pf, time_period):
         fig.update_layout(yaxis_title = "% Daily Change", xaxis_title="")
         for i, row in pf.iterrows():            
             if len(perc_change[perc_change.index == row.date][row.ticker]) > 0:
-                fig.add_annotation(x=row.date, y=perc_change[perc_change.index == row.date][row.ticker].iloc[0], text=f"{row.number_of_stocks} {row.ticker}: {row.total_cost_eur}", 
+                fig.add_annotation(x=row.date, y=perc_change[perc_change.index == row.date][row.ticker].iloc[0], text=f"{row.number_of_stocks} {row.ticker}: €{row.total_cost_eur}", 
                 showarrow=True,
                 font=dict(family="Courier New, monospace", size=12, color="#ffffff"),
                 align="center",
@@ -172,13 +172,24 @@ def change_over_time_line(pf, layout, stocks_or_pf, time_period):
     elif stocks_or_pf == 'Portfolio':
         y = 'Total Portfolio'
         his_subset = get_total(pf, his_subset) #(pf['number_of_stocks'].to_numpy()[::-1] * his_subset).sum(axis=1)
-        his_subset = his_subset.reset_index()
+        his_subset.set_index(his_subset.index.date, inplace=True)
         his_subset['Profit'] = his_subset[y] - pf.total_cost_eur.sum()
         title = stocks_or_pf
         colors = ['red']
         if his_subset[y].iloc[-1] > pf.total_cost_eur.sum(): colors = ['green']
-        fig = px.line(data_frame=his_subset, x='Date', y=[y], color_discrete_sequence=colors, title=title, hover_data=['Profit'])
-        fig.update_layout(yaxis_title = "Value in Euros")
+        fig = px.line(data_frame=his_subset, x=his_subset.index, y=[y], color_discrete_sequence=colors, title=title, hover_data=['Profit'])
+        fig.update_layout(yaxis_title = "Value in Euros", xaxis_title="")
+        fig.update_traces(line=dict(width=3.5))
+        for i, row in pf.iterrows():  
+            if len(his_subset[his_subset.index == row.date][row.ticker]) > 0:
+                fig.add_annotation(x=row.date, y=his_subset[his_subset.index == row.date]['Total Portfolio'].iloc[0], text=f"{row.number_of_stocks} {row.ticker}: €{row.total_cost_eur}", 
+                showarrow=True,
+                font=dict(family="Courier New, monospace", size=12, color="#ffffff"),
+                align="center",
+                arrowhead=2, arrowsize=1, arrowwidth=2, arrowcolor=row.color,
+                ax=20, ay=30,
+                bordercolor=row.color, borderwidth=2, borderpad=4,
+                bgcolor=row.color, opacity=0.8)
     
     fig.update_layout(layout)
     fig.update_traces(textfont={'color':'white', 'size':14})

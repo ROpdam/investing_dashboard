@@ -8,11 +8,15 @@ from dash.dependencies import Input, Output, State
 import dash_table
 import datetime
 
-from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
+from components import total_cost_eur, shrink_pf, budget_pie, change_over_time_line
 
 # TODO
+# When new stock added, scrape only for that stock
+# Fix Layout
 # Show current value in Potfolio Split
+# Only from purchase date button for individual stocks
 # Make deployable on Heroku: roportfolio.heroku.app 
+# Table with perc increase from purchase price?
 # Add degiro account specifics
 
 ########################################### Data ###########################################
@@ -69,16 +73,16 @@ budget_pie_layout = {
         }
 
 # Profit Percentage bar chart
-profit_perc_bar_layout = {
-        'plot_bgcolor':'rgba(0, 0, 0, 0)',
-        'paper_bgcolor':'rgba(0, 0, 0, 0)',
-        'title':{'font':{'size':20, 'color':'white'}},
-        # 'legend':{'font':{'size':14, 'color':'white'}},
-        'showlegend':False,
-        'margin':{'pad':10},
-        'xaxis':{'color':'white'},
-        'yaxis':{'color':'white'}
-         }
+# profit_perc_bar_layout = {
+#         'plot_bgcolor':'rgba(0, 0, 0, 0)',
+#         'paper_bgcolor':'rgba(0, 0, 0, 0)',
+#         'title':{'font':{'size':20, 'color':'white'}},
+#         # 'legend':{'font':{'size':14, 'color':'white'}},
+#         'showlegend':False,
+#         'margin':{'pad':10},
+#         'xaxis':{'color':'white'},
+#         'yaxis':{'color':'white'}
+#          }
 
 # Percentaeg change line chart
 change_over_time_line_layout = {
@@ -202,34 +206,34 @@ def update_change_line(time_period):
 def update_change_line(time_period):
     return change_over_time_line(portfolio, change_over_time_line_layout, stocks_or_pf='Individual Stocks', time_period=time_period)
 
-@app.callback(
-    Output("collapse", "is_open"),
-    [Input("more_controls_button", "n_clicks")],
-    [State("collapse", "is_open")]
-)
-def toggle_collapse(n, is_open):
-    if n:
-        return not is_open
-    return is_open
+# @app.callback(
+#     Output("collapse", "is_open"),
+#     [Input("more_controls_button", "n_clicks")],
+#     [State("collapse", "is_open")]
+# )
+# def toggle_collapse(n, is_open):
+#     if n:
+#         return not is_open
+#     return is_open
 
-@app.callback(
-    dash.dependencies.Output('opt-dropdown', 'options'),
-    [dash.dependencies.Input('name-dropdown', 'value')]
-)
-def update_date_dropdown(name):
-    return [{'label': i, 'value': i} for i in ticker_dates[name]]
+# @app.callback(
+#     dash.dependencies.Output('opt-dropdown', 'options'),
+#     [dash.dependencies.Input('name-dropdown', 'value')]
+# )
+# def update_date_dropdown(name):
+#     return [{'label': i, 'value': i} for i in ticker_dates[name]]
 
-@app.callback(
-    dash.dependencies.Output('profit-bar', 'figure'),
-    [dash.dependencies.Input('name-dropdown', 'value'),
-     dash.dependencies.Input('opt-dropdown', 'value')]
-)
-def update_profit_bar(ticker, date):
-    global profit_pf
-    tick_pf = profit_pf[profit_pf['ticker'] == ticker].copy()
-    if (portfolio.date.astype(str)==date).any():
-        print(tick_pf)
-    return profit_perc_bar(portfolio, profit_perc_bar_layout)
+# @app.callback(
+#     dash.dependencies.Output('profit-bar', 'figure'),
+#     [dash.dependencies.Input('name-dropdown', 'value'),
+#      dash.dependencies.Input('opt-dropdown', 'value')]
+# )
+# def update_profit_bar(ticker, date):
+#     global profit_pf
+#     tick_pf = profit_pf[profit_pf['ticker'] == ticker].copy()
+#     if (portfolio.date.astype(str)==date).any():
+#         print(tick_pf)
+#     return profit_perc_bar(portfolio, profit_perc_bar_layout)
 
 if __name__ =='__main__':
     app.run_server(debug=True)
