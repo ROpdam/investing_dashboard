@@ -11,7 +11,9 @@ import datetime
 from components import total_cost_eur, shrink_pf, budget_pie, profit_perc_bar, change_over_time_line
 
 # TODO
-# Make deployable on Heroku: roportfolio.heroku.app
+# Show current value in Potfolio Split
+# Make deployable on Heroku: roportfolio.heroku.app 
+# Add degiro account specifics
 
 ########################################### Data ###########################################
 # path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/data/'
@@ -97,43 +99,42 @@ app.config.suppress_callback_exceptions = True
 
 app.layout = html.Div(
     [
-        # Top Row
+        # 1st Row
     html.Div(
         [
     html.Div('Personal Finance', style={'fontSize': 28, 'marginLeft':'40px', 'marginBottom':'50px', 'font-weight': 'bold', 'marginTop':'20px'}),
         # Controls and Budget
-    html.Div([dbc.Button('More Controls', 
-                id='more_controls_button',
-                color='secondary', 
-                className='mr-1',
-                style={'margin-top':'20px', 'position':'absolute', 'right':300}),
+    # html.Div([dbc.Button('More Controls', 
+    #             id='more_controls_button',
+    #             color='secondary', 
+    #             className='mr-1',
+    #             style={'margin-top':'20px', 'position':'absolute', 'right':300}),
 
-    dbc.Collapse(
-            dbc.Card(
-                dbc.CardBody([
-                    'Select Purchase Date of Stock',
-                    dcc.Dropdown(
-                        id='name-dropdown',
-                        options=[{'label':i, 'value':i} for i in list(ticker_dates.keys())],
-                        value = list(ticker_dates.keys())[0]
-                    ), 
-                    html.Div([
-                    dcc.Dropdown(
-                        id='opt-dropdown',
-                        )
-                    ]),
-                 ]),
-            style={'background-color':'black'}),
-            id="collapse",
-            style={'background-color':'black', 'margin-top':'5px', 'position':'absolute', 'right':400}
-        )]),
-
-    html.Div(dbc.RadioItems(
-                    id='radio_pf-or-stocks',
-                    options=[{'label': i, 'value': i} for i in ['Portfolio', 'Individual Stocks']],
-                    value='Individual Stocks'),
-                    style={'padding':'20px', 'margin-left':'50px'}
-            ),
+    # dbc.Collapse(
+    #         dbc.Card(
+    #             dbc.CardBody([
+    #                 'Select Purchase Date of Stock',
+    #                 dcc.Dropdown(
+    #                     id='name-dropdown',
+    #                     options=[{'label':i, 'value':i} for i in list(ticker_dates.keys())],
+    #                     value = list(ticker_dates.keys())[0]
+    #                 ), 
+    #                 html.Div([
+    #                 dcc.Dropdown(
+    #                     id='opt-dropdown',
+    #                     )
+    #                 ]),
+    #              ]),
+    #         style={'background-color':'black'}),
+    #         id="collapse",
+    #         style={'background-color':'black', 'margin-top':'5px', 'position':'absolute', 'right':400}
+    #     )]),
+    # html.Div(dbc.RadioItems(
+    #                 id='radio_pf-or-stocks',
+    #                 options=[{'label': i, 'value': i} for i in ['Portfolio', 'Individual Stocks']],
+    #                 value='Individual Stocks'),
+    #                 style={'padding':'20px', 'margin-left':'50px'}
+    #         ),
     html.Div(dbc.RadioItems(
                     id='radio-time-period',
                     options=[{'label': i, 'value': i} for i in ['1m', '3m', '6m', '1y', '2y']],
@@ -141,7 +142,6 @@ app.layout = html.Div(
                     inline=True,
                 ), style={'display':'inline-block', 'margin-left':'5%', 'margin-top':'1%'}
             ),
-
     html.P(
             [
                 'In DeGiro', html.Br(), '\u20AC ', '{:.2f}'.format(round(float(budget.Budget.iloc[0]), 2))
@@ -155,16 +155,22 @@ app.layout = html.Div(
         ], 
         className="row", style={'background-color':'black', 'color':'white'}),
 
-    # Second Row
+    # 2nd Row
     html.Div(
             [
                dcc.Graph(id="change-line")
             ],
-    style={'background-color':'black', 'color':'white', 'margin-left':'3%', 'margin-right':'2%'}),
-    # Third Row
+    style={'background-color':'black', 'color':'white'}),
+    # 3rd Row
+    html.Div(
+            [
+               dcc.Graph(id="change-line-pf")
+            ],
+    style={'background-color':'black', 'color':'white'}),
+    # 4th Row
     html.Div(
         [
-        html.Div(budget_pie(pf_no_dupl, budget, budget_pie_layout), style={'margin-left':'auto', 'margin-right':'10%'}),
+        html.Div(budget_pie(pf_no_dupl, budget, budget_pie_layout)),
         # html.Div(profit_perc_bar(pf_no_dupl, profit_perc_bar_layout), style={'margin-left':'200px'})
         ], 
         className="row", style={'background-color':'black', 'color':'white'}),
@@ -173,24 +179,28 @@ app.layout = html.Div(
     ], 
     style={
         'background-color':'black',
-        # 'width':'100%',
-        # 'height':'100%'
-        # 'top':'0px',
-        # 'left':'0px',
-        # 'margin': '0px',
-        # 'z-index':'1000'
         })
 
 ####################################### CALL BACKS ############################################
 @app.callback(
     Output('change-line', 'figure'),
     [
-        Input('radio_pf-or-stocks', 'value'),
+        # Input('radio_pf-or-stocks', 'value'),
         Input('radio-time-period', 'value'),
     ]
 )
-def update_change_line(radio_pf, time_period):
-    return change_over_time_line(pf_no_dupl, change_over_time_line_layout, stocks_or_pf=radio_pf, time_period=time_period)
+def update_change_line(time_period):
+    return change_over_time_line(portfolio, change_over_time_line_layout, stocks_or_pf='Portfolio', time_period=time_period)
+
+@app.callback(
+    Output('change-line-pf', 'figure'),
+    [
+        # Input('radio_pf-or-stocks', 'value'),
+        Input('radio-time-period', 'value'),
+    ]
+)
+def update_change_line(time_period):
+    return change_over_time_line(portfolio, change_over_time_line_layout, stocks_or_pf='Individual Stocks', time_period=time_period)
 
 @app.callback(
     Output("collapse", "is_open"),
