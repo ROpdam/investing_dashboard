@@ -11,6 +11,7 @@ import datetime
 from components import total_cost_eur, shrink_pf, budget_pie, change_over_time_line
 
 # TODO
+# Use grid for time series
 # When new stock added, scrape only for that stock
 # Fix Layout
 # Show current value in Potfolio Split
@@ -22,15 +23,17 @@ from components import total_cost_eur, shrink_pf, budget_pie, change_over_time_l
 ########################################### Data ###########################################
 # path = '/Users/Robin/Documents/personal_finance/Investing/Dashboard/data/'
 path = './data/'
+# source = 'investing_source.xlsx'
+source = 'investing_source_example.xlsx'
 
-portfolio = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Stocks')
+portfolio = pd.read_excel(path + source, sheet_name='Stocks')
 portfolio['date'] = portfolio['date'].dt.date
 portfolio = portfolio.apply(total_cost_eur, axis=1).sort_values('total_cost_eur', ascending=False)
 
 pf_no_dupl = shrink_pf(portfolio)
 ticker_dates = portfolio.set_index('ticker').groupby(level=0).apply(lambda x : list(x['date'])).to_dict()
 profit_pf = portfolio.copy()
-budget = pd.read_excel(path + 'investing_source.xlsx', sheet_name='Budget')
+budget = pd.read_excel(path + source, sheet_name='Budget')
 max_days = 120
 
 if os.path.exists(path + 'history/PF_history.xlsx'):

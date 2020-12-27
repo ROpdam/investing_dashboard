@@ -62,7 +62,7 @@ def get_hist_prices(pf, days_back=0):
         # from_date = row['date'].strftime('%d/%m/%Y')
         for sr in search_results[:1]:
             hist_p = sr.retrieve_historical_data(from_date=from_date, to_date=to_date)['Close'].to_frame().rename({'Close':row['ticker']}, axis=1)
-            all_prices.append(hist_p.interpolate(axis=1))
+            all_prices.append(hist_p.interpolate(axis=1))        
     
     return pd.concat(all_prices, axis=1)
 
