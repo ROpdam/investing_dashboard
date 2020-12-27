@@ -18,9 +18,9 @@ forex-python==1.5
 future==0.18.2
 idna==2.10
 investpy==1.0
-ipykernel==5.3.4
-ipython==7.19.0
-ipython-genutils==0.2.0
+# ipykernel==5.3.4
+# ipython==7.19.0
+# ipython-genutils==0.2.0
 itsdangerous==1.1.0
 jdcal==1.4.1
 jedi==0.17.2
